@@ -1,0 +1,72 @@
+Index: include/utility/heap.h
+===================================================================
+--- include/utility/heap.h	(revision 5401)
++++ include/utility/heap.h	(working copy)
+@@ -45,13 +45,13 @@
+         if(bytes < sizeof(Element))
+             bytes = sizeof(Element);
+ 
+-        Element * e = search_decrementing(bytes);
+-        if(!e) {
++        char * a = search_decrementing_bottom_up(bytes);
++        if(!a) {
+             out_of_memory();
+             return 0;
+         }
+ 
+-        int * addr = reinterpret_cast<int *>(e->object() + e->size());
++        int * addr = reinterpret_cast<int *>(a);
+ 
+         if(typed)
+             *addr++ = reinterpret_cast<int>(this);
+@@ -66,7 +66,9 @@
+         db<Heaps>(TRC) << "Heap::free(this=" << this << ",ptr=" << ptr << ",bytes=" << bytes << ")" << endl;
+ 
+         if(ptr && (bytes >= sizeof(Element))) {
+-            Element * e = new (ptr) Element(reinterpret_cast<char *>(ptr), bytes);
++            char * p = reinterpret_cast<char *>(ptr);
++            // Place the Element at the end of the freed block
++            Element * e = new (p + bytes - sizeof(Element)) Element(p, bytes);
+             Element * m1, * m2;
+             insert_merging(e, &m1, &m2);
+         }
+Index: include/utility/list.h
+===================================================================
+--- include/utility/list.h	(revision 5401)
++++ include/utility/list.h	(working copy)
+@@ -244,6 +244,7 @@
+         Doubly_Linked_Grouping(const T * o, int s): _object(o), _size(s), _prev(0), _next(0) {}
+ 
+         T * object() const { return const_cast<T *>(_object); }
++        void object(const T * o) { _object = o;}
+ 
+         Element * prev() const { return _prev; }
+         Element * next() const { return _next; }
+@@ -1364,6 +1365,27 @@
+         return e;
+     }
+ 
++    // Add another method so we don't break other components
++    // that rely on the old behavior of search_decrementing
++    T * search_decrementing_bottom_up(unsigned int s) {
++        db<Lists>(TRC) << "Grouping_List::search_decrementing_bottom_up(s=" << s << ")" << endl;
++        print_head();
++        print_tail();
++
++        Element * e = search_size(s);
++        T * before = 0;
++
++        if (e) {
++            before = e->object();
++            e->object(e->object() + s);
++            e->shrink(s);
++            _grouped_size -= s;
++            if(!e->size())
++                remove(e);
++        }
++
++        return before;
++    }
+ private:
+     Element * search_left(const Object_Type * obj) {
+         Element * e = head();
