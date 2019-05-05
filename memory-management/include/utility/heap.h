@@ -45,13 +45,17 @@ public:
         if(bytes < sizeof(Element))
             bytes = sizeof(Element);
 
-        Element * e = search_decrementing(bytes);
+
+        kout << endl << "Alloc" << endl;
+        // Element * e = search_decrementing2(bytes);
+        char * e = search_decrementing_bottom_up(bytes);
         if(!e) {
             out_of_memory();
             return 0;
         }
 
-        int * addr = reinterpret_cast<int *>(e->object() + e->size());
+        // int * addr = reinterpret_cast<int *>(e->object() + e->size());
+        int * addr = reinterpret_cast<int *>(e);
 
         if(typed)
             *addr++ = reinterpret_cast<int>(this);

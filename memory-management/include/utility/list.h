@@ -244,6 +244,7 @@ namespace List_Elements
         Doubly_Linked_Grouping(const T * o, int s): _object(o), _size(s), _prev(0), _next(0) {}
 
         T * object() const { return const_cast<T *>(_object); }
+        void object(const T * o) { _object = o; }
 
         Element * prev() const { return _prev; }
         Element * next() const { return _next; }
@@ -1362,6 +1363,96 @@ public:
         }
 
         return e;
+    }
+
+    Element * search_decrementing2(unsigned int s) {
+        db<Lists>(TRC) << "Grouping_List::search_decrementing(s=" << s << ")" << endl;
+        print_head();
+        print_tail();
+
+        print_all();
+
+        Element * e = search_size(s);
+        if(e) {
+            e->shrink(s);
+            _grouped_size -= s;
+            if(!e->size())
+                remove(e);
+        }
+
+        return e;
+    }
+
+    T * search_decrementing_bottom_up(unsigned int s) {
+        print_all();
+
+        db<Lists>(TRC) << "Grouping_List::search_decrementing_bottom_up(s=" << s << ")" << endl;
+        print_head();
+        print_tail();
+
+        Element * e = search_size(s);
+        T * before = 0;
+
+        if (e->size() < s) {
+            kout << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << endl;
+        }
+
+        if (e) {
+            before = e->object();
+            e->object(e->object() + s);
+            e->shrink(s);
+            _grouped_size -= s;
+            if(!e->size())
+                remove(e);
+        }
+
+        return before;
+    }
+
+    void print_all2() {
+        kout << "Starting print" << endl;
+
+        if (empty()) {
+            kout << "Empty" << endl;
+            return;
+        }
+
+        int i = 0;
+
+        Element * e = head();
+
+        while (e) {
+            kout << "Index " << i
+                << ", Size " << e->size()
+                << ", Next " << e->next()
+                << ", Prev " << e->prev()
+                << ", Object " << reinterpret_cast<void*>(e->object())
+                << endl;
+
+            e = e->next();
+        }
+    }
+
+    void print_all() {
+        kout << "Starting print" << endl;
+
+        if (empty()) {
+            kout << "Empty" << endl;
+            return;
+        }
+
+        int i = 0;
+
+        Element * e = head();
+
+        while (e) {
+            kout << "Space " << i <<  ": "
+                << "from " << reinterpret_cast<void*>(e->object())
+                << " to " << reinterpret_cast<void*>(reinterpret_cast<char*>(e->object()) + e->size())
+                << endl;
+
+            e = e->next();
+        }
     }
 
 private:
