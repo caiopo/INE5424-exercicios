@@ -1330,6 +1330,7 @@ public:
 
     void insert_merging(Element * e, Element ** m1, Element ** m2) {
         db<Lists>(TRC) << "Grouping_List::insert_merging(e=" << e << ")" << endl;
+        // print_all("Before insert");
 
         _grouped_size += e->size();
         *m1 = *m2 = 0;
@@ -1347,6 +1348,7 @@ public:
             l->size(l->size() + e->size());
             *m2 = e;
         }
+        // print_all("After insert");
     }
 
     Element * search_decrementing(unsigned int s) {
@@ -1384,28 +1386,27 @@ public:
     }
 
     T * search_decrementing_bottom_up(unsigned int s) {
-        print_all();
-
-        db<Lists>(TRC) << "Grouping_List::search_decrementing_bottom_up(s=" << s << ")" << endl;
-        print_head();
-        print_tail();
+        // print_all("Before search");
 
         Element * e = search_size(s);
         T * before = 0;
 
-        if (e->size() < s) {
+        int size = static_cast<int>(s);
+
+        if (size < 0) {
             kout << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << endl;
         }
 
         if (e) {
             before = e->object();
-            e->object(e->object() + s);
-            e->shrink(s);
-            _grouped_size -= s;
+            e->object(e->object() + size);
+            e->shrink(size);
+            _grouped_size -= size;
             if(!e->size())
                 remove(e);
         }
 
+        // print_all("After search");
         return before;
     }
 
@@ -1433,27 +1434,30 @@ public:
         }
     }
 
-    void print_all() {
-        kout << "Starting print" << endl;
-
-        if (empty()) {
-            kout << "Empty" << endl;
-            return;
-        }
-
-        int i = 0;
-
-        Element * e = head();
-
-        while (e) {
-            kout << "Space " << i <<  ": "
-                << "from " << reinterpret_cast<void*>(e->object())
-                << " to " << reinterpret_cast<void*>(reinterpret_cast<char*>(e->object()) + e->size())
-                << endl;
-
-            e = e->next();
-        }
+    void print_all(const char* s) {
     }
+
+    // void print_all(const char* s) {
+    //     kout << s << endl;
+
+    //     if (empty()) {
+    //         kout << "Empty" << endl;
+    //     } else {
+    //         int i = 0;
+
+    //         Element * e = head();
+
+    //         while (e) {
+    //             kout << "Space " << i++ <<  ": "
+    //                 << "from " << reinterpret_cast<void*>(e->object())
+    //                 << " to " << reinterpret_cast<void*>(reinterpret_cast<char*>(e->object()) + e->size())
+    //                 << endl;
+
+    //             e = e->next();
+    //         }
+    //     }
+    //     kout << endl;
+    // }
 
 private:
     Element * search_left(const Object_Type * obj) {

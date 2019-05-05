@@ -46,9 +46,12 @@ public:
             bytes = sizeof(Element);
 
 
-        kout << endl << "Alloc" << endl;
+        // kout << endl << "Alloc" << endl;
         // Element * e = search_decrementing2(bytes);
+        kout << bytes << endl;
+        print_all("Before search");
         char * e = search_decrementing_bottom_up(bytes);
+        print_all("After search");
         if(!e) {
             out_of_memory();
             return 0;
@@ -72,7 +75,9 @@ public:
         if(ptr && (bytes >= sizeof(Element))) {
             Element * e = new (ptr) Element(reinterpret_cast<char *>(ptr), bytes);
             Element * m1, * m2;
+            print_all("Before insert");
             insert_merging(e, &m1, &m2);
+            print_all("After insert");
         }
     }
 

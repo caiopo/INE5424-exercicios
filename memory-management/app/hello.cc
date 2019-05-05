@@ -6,7 +6,9 @@ OStream cout;
 
 int main()
 {
-    cout << "Hello world!" << endl;
+    cout << "Trying to Alloc" << endl;
+    int* x = new int;
+    cout << "Done" << endl;
 
     return 0;
 }
