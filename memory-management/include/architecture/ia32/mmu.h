@@ -312,15 +312,18 @@ public:
         Phy_Addr phy(false);
 
         if(frames) {
-            List::Element * e = _free[color].search_decrementing(frames);
+            _free[color].print_all("Before MMU alloc");
+            auto * e = _free[color].search_decrementing(frames);
             if(e) {
-                phy = e->object() + e->size();
+                phy = e;
                 db<MMU>(TRC) << "MMU::alloc(frames=" << frames << ",color=" << color << ") => " << phy << endl;
-            } else
+            } else {
+                _free[color].print_all("After alloc failed");
                 if(colorful)
                     db<MMU>(INF) << "MMU::alloc(frames=" << frames << ",color=" << color << ") => failed!" << endl;
                 else
                     db<MMU>(WRN) << "MMU::alloc(frames=" << frames << ",color=" << color << ") => failed!" << endl;
+            }
         }
 
         return phy;

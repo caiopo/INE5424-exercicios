@@ -244,6 +244,7 @@ namespace List_Elements
         Doubly_Linked_Grouping(const T * o, int s): _object(o), _size(s), _prev(0), _next(0) {}
 
         T * object() const { return const_cast<T *>(_object); }
+        void object(const T * o) { _object = o;}
 
         Element * prev() const { return _prev; }
         Element * next() const { return _next; }
@@ -1364,6 +1365,28 @@ public:
         return e;
     }
 
+    T * search_decrementing_bottom_up(unsigned int s) {
+        Element * e = search_size(s);
+        T * before = 0;
+
+        int size = static_cast<int>(s);
+        if (size < 0) {
+            kout << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << endl;
+        }
+
+        if (e) {
+            before = e->object();
+            e->object(e->object() + size);
+            e->shrink(size);
+            _grouped_size -= size;
+            if(!e->size())
+                remove(e);
+        }
+
+        kout << "return " << reinterpret_cast<void*>(before) << endl;
+
+        return before;
+    }
 private:
     Element * search_left(const Object_Type * obj) {
         Element * e = head();

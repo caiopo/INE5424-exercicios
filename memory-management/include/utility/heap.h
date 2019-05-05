@@ -50,7 +50,7 @@ public:
         // Element * e = search_decrementing2(bytes);
         kout << bytes << endl;
         print_all("Before search");
-        char * e = search_decrementing_bottom_up(bytes);
+        char * e = search_decrementing(bytes);
         print_all("After search");
         if(!e) {
             out_of_memory();

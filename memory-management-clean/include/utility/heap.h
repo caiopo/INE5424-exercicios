@@ -45,13 +45,13 @@ public:
         if(bytes < sizeof(Element))
             bytes = sizeof(Element);
 
-        Element * e = search_decrementing(bytes);
+        char * e = search_decrementing_bottom_up(bytes);
         if(!e) {
             out_of_memory();
             return 0;
         }
 
-        int * addr = reinterpret_cast<int *>(e->object() + e->size());
+        int * addr = reinterpret_cast<int *>(e);
 
         if(typed)
             *addr++ = reinterpret_cast<int>(this);
@@ -66,7 +66,8 @@ public:
         db<Heaps>(TRC) << "Heap::free(this=" << this << ",ptr=" << ptr << ",bytes=" << bytes << ")" << endl;
 
         if(ptr && (bytes >= sizeof(Element))) {
-            Element * e = new (ptr) Element(reinterpret_cast<char *>(ptr), bytes);
+            char* p = reinterpret_cast<char *>(ptr);
+            Element * e = new (p + bytes - sizeof(Element)) Element(p, bytes);
             Element * m1, * m2;
             insert_merging(e, &m1, &m2);
         }
