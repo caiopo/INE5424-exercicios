@@ -1365,25 +1365,24 @@ public:
         return e;
     }
 
+    // Add another method so we don't break other components
+    // that rely on the old behavior of search_decrementing
     T * search_decrementing_bottom_up(unsigned int s) {
+        db<Lists>(TRC) << "Grouping_List::search_decrementing_bottom_up(s=" << s << ")" << endl;
+        print_head();
+        print_tail();
+
         Element * e = search_size(s);
         T * before = 0;
 
-        int size = static_cast<int>(s);
-        if (size < 0) {
-            kout << "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << endl;
-        }
-
         if (e) {
             before = e->object();
-            e->object(e->object() + size);
-            e->shrink(size);
-            _grouped_size -= size;
+            e->object(e->object() + s);
+            e->shrink(s);
+            _grouped_size -= s;
             if(!e->size())
                 remove(e);
         }
-
-        kout << "return " << reinterpret_cast<void*>(before) << endl;
 
         return before;
     }

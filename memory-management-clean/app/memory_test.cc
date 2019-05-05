@@ -22,6 +22,8 @@ int main() {
         arr[i] = new int[1000];
     }
 
+    cout << arr << endl;
+
     for (int i = 0; i < arr_size; i++) {
         cout << arr[i] << endl;
     }
