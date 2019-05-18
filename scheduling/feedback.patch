@@ -1,0 +1,264 @@
+Index: app/scheduler_test.cc
+===================================================================
+--- app/scheduler_test.cc	(nonexistent)
++++ app/scheduler_test.cc	(working copy)
+@@ -0,0 +1,45 @@
++#include <utility/ostream.h>
++#include <process.h>
++#include <time.h>
++
++using namespace EPOS;
++
++OStream cout;
++
++Thread* thread_io;
++Thread* thread_cpu;
++
++// IO bound thread will not lose priority,
++// as it never uses its entire quantum
++int io_bound() {
++    cout << "IO bound thread at " << thread_io << endl;
++
++    while (1) {
++        Alarm::delay(100000);
++    }
++
++    return 0;
++}
++
++// CPU bound thread will lose priority,
++// as it always uses its entire quantum
++int cpu_bound() {
++    cout << "CPU bound thread at " << thread_cpu << endl;
++
++    while (1);
++
++    return 0;
++}
++
++int main() {
++    thread_io = new Thread(&io_bound);
++    thread_cpu = new Thread(&cpu_bound);
++
++    thread_io->join();
++    thread_cpu->join();
++
++    delete thread_io;
++    delete thread_cpu;
++
++    return 0;
++}
+Index: app/scheduler_test_traits.h
+===================================================================
+--- app/scheduler_test_traits.h	(nonexistent)
++++ app/scheduler_test_traits.h	(working copy)
+@@ -0,0 +1,145 @@
++#ifndef __traits_h
++#define __traits_h
++
++#include <system/config.h>
++
++__BEGIN_SYS
++
++// Global Configuration
++template<typename T>
++struct Traits
++{
++    static const bool enabled = true;
++    static const bool debugged = false;
++    static const bool hysterically_debugged = false;
++    typedef LIST<> DEVICES;
++    typedef TLIST<> ASPECTS;
++};
++
++template<> struct Traits<Build>
++{
++    enum {LIBRARY, BUILTIN, KERNEL};
++    static const unsigned int MODE = LIBRARY;
++
++    enum {IA32, AVR8, ARMv7};
++    static const unsigned int ARCHITECTURE = IA32;
++
++    enum {PC, ATmega, Cortex};
++    static const unsigned int MACHINE = PC;
++
++    enum {Legacy_PC, eMote3, LM3S811, Zynq};
++    static const unsigned int MODEL = Legacy_PC;
++
++    static const unsigned int CPUS = 1;
++    static const unsigned int NODES = 1; // > 1 => NETWORKING
++};
++
++
++// Utilities
++template<> struct Traits<Debug>
++{
++    static const bool error   = true;
++    static const bool warning = true;
++    static const bool info    = true;
++    static const bool trace   = false;
++};
++
++template<> struct Traits<Lists>: public Traits<void>
++{
++    static const bool debugged = hysterically_debugged;
++};
++
++template<> struct Traits<Spin>: public Traits<void>
++{
++    static const bool debugged = hysterically_debugged;
++};
++
++template<> struct Traits<Heaps>: public Traits<void>
++{
++    static const bool debugged = hysterically_debugged;
++};
++
++
++// System Parts (mostly to fine control debugging)
++template<> struct Traits<Boot>: public Traits<void>
++{
++};
++
++template<> struct Traits<Setup>: public Traits<void>
++{
++};
++
++template<> struct Traits<Init>: public Traits<void>
++{
++};
++
++
++// Mediators
++template<> struct Traits<Serial_Display>: public Traits<void>
++{
++    static const bool enabled = true;
++    enum {UART, USB};
++    static const int ENGINE = UART;
++    static const int COLUMNS = 80;
++    static const int LINES = 24;
++    static const int TAB_SIZE = 8;
++};
++
++__END_SYS
++
++#include __ARCH_TRAITS_H
++#include __MACH_TRAITS_H
++
++__BEGIN_SYS
++
++
++// Components
++template<> struct Traits<Application>: public Traits<void>
++{
++    static const unsigned int STACK_SIZE = Traits<Machine>::STACK_SIZE;
++    static const unsigned int HEAP_SIZE = Traits<Machine>::HEAP_SIZE;
++    static const unsigned int MAX_THREADS = Traits<Machine>::MAX_THREADS;
++};
++
++template<> struct Traits<System>: public Traits<void>
++{
++    static const unsigned int mode = Traits<Build>::MODE;
++    static const bool multithread = (Traits<Application>::MAX_THREADS > 1);
++    static const bool multiheap = true;
++
++    enum {FOREVER = 0, SECOND = 1, MINUTE = 60, HOUR = 3600, DAY = 86400, WEEK = 604800, MONTH = 2592000, YEAR = 31536000};
++    static const unsigned long LIFE_SPAN = 1 * HOUR; // in seconds
++
++    static const bool reboot = true;
++
++    static const unsigned int STACK_SIZE = Traits<Machine>::STACK_SIZE;
++    static const unsigned int HEAP_SIZE = (Traits<Application>::MAX_THREADS + 1) * Traits<Application>::STACK_SIZE;
++};
++
++template<> struct Traits<Thread>: public Traits<void>
++{
++    typedef Scheduling_Criteria::Feedback Criterion;
++    static const unsigned int QUANTUM = 10000; // us
++
++    static const bool trace_idle = hysterically_debugged;
++    static const bool debugged = true;
++};
++
++template<> struct Traits<Scheduler<Thread>>: public Traits<void>
++{
++    static const bool debugged = Traits<Thread>::trace_idle || hysterically_debugged;
++};
++
++template<> struct Traits<Time>: public Traits<void>
++{
++    static const bool visible = hysterically_debugged;
++};
++
++template<> struct Traits<Synchronizer>: public Traits<void>
++{
++    static const bool enabled = Traits<System>::multithread;
++};
++
++__END_SYS
++
++#endif
+Index: include/system/types.h
+===================================================================
+--- include/system/types.h	(revision 5409)
++++ include/system/types.h	(working copy)
+@@ -132,6 +132,7 @@
+     class Priority;
+     class FCFS;
+     class RR;
++    class Feedback;
+ };
+ 
+ class Address_Space;
+Index: include/utility/scheduler.h
+===================================================================
+--- include/utility/scheduler.h	(revision 5409)
++++ include/utility/scheduler.h	(working copy)
+@@ -77,6 +77,32 @@
+     public:
+         FCFS(int p = NORMAL); // Defined at Alarm
+     };
++
++    class Feedback: public Priority
++    {
++    public:
++        enum {
++            MAIN   = 0,
++            NORMAL = 1,
++            IDLE   = (unsigned(1) << (sizeof(int) * 8 - 1)) - 1
++        };
++
++        static const bool timed = true;
++        static const bool dynamic = true;
++        static const bool preemptive = true;
++
++    public:
++        Feedback(int p = NORMAL): Priority(p) {}
++
++        Feedback operator+=(Feedback p) {
++            // Make sure _priority will never be
++            // greater than or equal to IDLE
++            if (_priority < (IDLE - p)) {
++                _priority += p;
++            }
++            return *this;
++        }
++    };
+ }
+ 
+ 
+Index: src/api/thread.cc
+===================================================================
+--- src/api/thread.cc	(revision 5409)
++++ src/api/thread.cc	(working copy)
+@@ -313,6 +313,10 @@
+ {
+     lock();
+ 
++    running()->_link.demote();
++    db<Thread>(INF) << "Thread(this=" << running()
++        << ") demoted, priority = " << running()->priority() << endl;
++
+     reschedule();
+ }
+ 
